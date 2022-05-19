@@ -79,7 +79,7 @@ v1.259
     
         var type = this._parentOrderBuilder.getForceEntryType(virtualActive.unitSelf, virtualActive.isSrc);
         
-        // グローバルパラメータが設定されている場合、強制戦闘イベント上の設定を無視してクリティカル
+        // グローバルパラメータが設定されている場合、強制戦闘イベント上の設定を無視してクリティカル判定を行う
         if (typeof root.getMetaSession().global.isForceBattleNormalCalculate !== 'undefined' && root.getMetaSession().global.isForceBattleNormalCalculate) {
             return AttackEvaluator.HitCritical.isCritical(virtualActive, virtualPassive, attackEntry);
         }
