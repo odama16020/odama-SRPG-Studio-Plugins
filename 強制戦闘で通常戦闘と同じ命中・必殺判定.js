@@ -72,7 +72,7 @@ v1.259
             }
         }
     };
-    
+
     var alias2 = AttackEvaluator.ForceHit.isCritical;
     AttackEvaluator.ForceHit.isCritical = function(virtualActive, virtualPassive, attackEntry) {
         alias2.call(this, virtualActive, virtualPassive, attackEntry);
@@ -96,5 +96,5 @@ v1.259
             }
         }
     };
-    
-    })();
+
+})();
