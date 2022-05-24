@@ -116,7 +116,7 @@
 				direction = PosChecker.getSideDirection(active.getMapX(), active.getMapY(), passive.getMapX(), passive.getMapY());
 				isDirectAttack = direction !== DirectionType.NULL;
 				if( isDirectAttack === false ) {
-					// 間接攻撃を仕掛けられた時、exAvoidの値の分、回避率上昇
+					// exAvoidの値の分、回避率上昇
 					avo += exAvoid;
 				}
 			}
