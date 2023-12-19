@@ -175,7 +175,7 @@ UnitCommand.MultiAttack = defineObject(UnitCommand.Attack,
 	isCommandDisplayable: function() {
 		var skill, count, skillCnt;
 		
-		var result = UnitCommand.Attack.isCommandDisplayable.call(this);
+		var result = AttackChecker.isUnitAttackable(this.getCommandTarget());
 		var unit = this.getCommandTarget();
 		
 		if( result == false ) {
