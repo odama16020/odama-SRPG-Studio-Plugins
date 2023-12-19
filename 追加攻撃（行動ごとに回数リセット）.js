@@ -20,6 +20,9 @@
 　また、上記スキルのカスタムパラメータに{ AttackTimesPerAction:XX }（XXは0より大きい数字）を設定すると
 　１回の行動でXX回まで追加攻撃を使用出来ます。省略した場合は１行動１回だけ使用可能です。
 
+　また、カスタムパラメータに{ isNormalAttackDisplayable:false }を設定すると
+　通常の攻撃コマンドを非表示にします。
+
 　発動率の値は使用していないので、0%に設定しておく方がいいです。
 
 ■カスタマイズ
@@ -38,6 +41,7 @@
 
 ■変更履歴（改変後）
 23/12/20　改変版初回リリース
+          通常の攻撃コマンドを非表示にする機能を追加
 
 ■動作確認バージョン
 　SRPG Studio Version:1.288
@@ -138,6 +142,26 @@ UnitWaitFlowEntry._completeMemberData = function(playerTurn) {
 
 	// 従来処理を実行
 	alias04.call(this, playerTurn);
+}
+
+
+
+
+// 通常の攻撃コマンドを表示するかどうか
+var alias05 = UnitCommand.Attack.isCommandDisplayable;
+UnitCommand.Attack.isCommandDisplayable = function() {
+	var skill;
+	var unit = this.getCommandTarget();
+	
+	skill = MultiAttackControl.getMultiAttackSkill(unit);
+	
+	// isNormalAttackDisplayable が false なら、攻撃コマンドを表示しない
+	if (skill && typeof skill.custom.isNormalAttackDisplayable  === 'boolean') {
+		return skill.custom.isNormalAttackDisplayable;
+	}
+
+	// 従来処理を実行
+	return alias05.call(this);
 };
 
 
@@ -151,7 +175,7 @@ UnitCommand.MultiAttack = defineObject(UnitCommand.Attack,
 	isCommandDisplayable: function() {
 		var skill, count, skillCnt;
 		
-		var result = UnitCommand.Attack.isCommandDisplayable.call(this);
+		var result = AttackChecker.isUnitAttackable(this.getCommandTarget());
 		var unit = this.getCommandTarget();
 		
 		if( result == false ) {
