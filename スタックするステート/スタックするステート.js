@@ -51,6 +51,10 @@ rate_correction:[<最大HP>, <力>, <魔力>, <技>, <速さ>, <幸運>, <守備
 ・{maxStack:6, nextState:11, removePreviousState:true}
 ステートを6スタックさせたとき、ID11のステートを付与し、スタックさせた元のステートを削除します。
 
+・{maxStack:1, nextState:5}
+ステートを1スタック（＝初回付与）させたとき、ID5のステートを付与します。maxStackが1の場合、スタック数は表示されません。
+また、ID5のステートに{maxStack:1, nextState:6}と設定すると更にID6のステートを付与できます。
+
 ・{rate_correction:[0, -10, 20, 0, 0, 0, 0, 10, 0, 0, 0]}
 ステートを付与した時力が10%減少、魔力が20%増加、魔防が10%増加します。
 
@@ -66,6 +70,7 @@ rate_correction:[<最大HP>, <力>, <魔力>, <技>, <速さ>, <幸運>, <守備
 
 ■更新履歴
 23/12/27　初回リリース
+23/12/27　maxStackが1でもnextStateが付与されるよう修正
 
 
 ■動作確認バージョン
@@ -110,20 +115,6 @@ StateControl.arrangeState = function (unit, state, increaseType) {
                 // overlappingTurn が未設定ならツールのターンを設定
                 turnState.setTurn(state.getTurn());
             }
-
-            // スタック数が maxStack に達したら別のステートを付与する場合
-            if (unit.custom.stackState[state.getId()] === state.custom.maxStack &&
-            typeof state.custom.nextState === 'number') {
-                // removePreviousState が true であれば、既存ステートを削除
-                if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
-                    StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
-                    unit.custom.stackState[state.getId()] = 0;
-                }
-
-                // 新しいステートを付与
-                var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
-                StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
-            }
         // ステートを新規で付与するとき
         } else {
             if (count < DataConfig.getMaxStateCount()) {
@@ -138,6 +129,20 @@ StateControl.arrangeState = function (unit, state, increaseType) {
                 }
                 unit.custom.stackState[state.getId()] = 1;
             }
+        }
+
+        // スタック数が maxStack に達したら別のステートを付与する場合
+        if (unit.custom.stackState[state.getId()] === state.custom.maxStack &&
+        typeof state.custom.nextState === 'number') {
+            // removePreviousState が true であれば、既存ステートを削除
+            if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
+                StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
+                unit.custom.stackState[state.getId()] = 0;
+            }
+
+            // 新しいステートを付与
+            var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
+            StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
         }
 
         return;
