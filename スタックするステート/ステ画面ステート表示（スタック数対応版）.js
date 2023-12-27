@@ -1119,27 +1119,27 @@ StateSentence.Stack = defineObject(BaseStateSentence,
 		var state = turnState.getState();
 		var stack = 0;
 		
-		if(typeof state.custom.maxStack !== 'number' && state.custom.maxStack > 1) {
-			return;
-		}
-		if (typeof root.getMetaSession().global.stackState[state.getId()] === 'number') {
-			stack = root.getMetaSession().global.stackState[state.getId()];
-		}
-		
-		text = StateSentenceStack;
-		ItemInfoRenderer.drawKeyword(x, y, text);
-		x += ItemInfoRenderer.getSpaceX();
-		
-		if (turnState.stack !== 0) {
-			NumberRenderer.drawNumber(x, y, stack);
-		}
-		else {
-			TextRenderer.drawSignText(x, y, StringTable.SignWord_Limitless);
+		// maxStackが1より大きい数値の場合のみ描写
+		if(typeof state.custom.maxStack === 'number' && state.custom.maxStack > 1) {
+			if (typeof root.getMetaSession().global.stackState[state.getId()] === 'number') {
+				stack = root.getMetaSession().global.stackState[state.getId()];
+			}
+			
+			text = StateSentenceStack;
+			ItemInfoRenderer.drawKeyword(x, y, text);
+			x += ItemInfoRenderer.getSpaceX();
+			
+			if (turnState.stack !== 0) {
+				NumberRenderer.drawNumber(x, y, stack);
+			}
+			else {
+				TextRenderer.drawSignText(x, y, StringTable.SignWord_Limitless);
+			}
 		}
 	},
 	
 	getStateSentenceCount: function(state) {
-		if (typeof state.custom.maxStack === 'number') {
+		if (typeof state.custom.maxStack === 'number' && state.custom.maxStack > 1) {
 			return 1;
 		}
 		return 0;
