@@ -97,6 +97,7 @@
 ■更新履歴（改変後）
 23/12/27　改変版初回リリース
           ステートのスタック数を表示する機能を追加
+23/12/27　maxStackが1のステートである場合、スタック数を表示しないよう変更
 
 ■動作確認バージョン
 　SRPG Studio Version:1.288
@@ -1118,7 +1119,7 @@ StateSentence.Stack = defineObject(BaseStateSentence,
 		var state = turnState.getState();
 		var stack = 0;
 		
-		if(typeof state.custom.maxStack !== 'number') {
+		if(typeof state.custom.maxStack !== 'number' && state.custom.maxStack > 1) {
 			return;
 		}
 		if (typeof root.getMetaSession().global.stackState[state.getId()] === 'number') {
