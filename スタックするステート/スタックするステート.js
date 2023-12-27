@@ -110,20 +110,6 @@ StateControl.arrangeState = function (unit, state, increaseType) {
                 // overlappingTurn が未設定ならツールのターンを設定
                 turnState.setTurn(state.getTurn());
             }
-
-            // スタック数が maxStack に達したら別のステートを付与する場合
-            if (unit.custom.stackState[state.getId()] === state.custom.maxStack &&
-            typeof state.custom.nextState === 'number') {
-                // removePreviousState が true であれば、既存ステートを削除
-                if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
-                    StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
-                    unit.custom.stackState[state.getId()] = 0;
-                }
-
-                // 新しいステートを付与
-                var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
-                StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
-            }
         // ステートを新規で付与するとき
         } else {
             if (count < DataConfig.getMaxStateCount()) {
@@ -138,6 +124,20 @@ StateControl.arrangeState = function (unit, state, increaseType) {
                 }
                 unit.custom.stackState[state.getId()] = 1;
             }
+        }
+
+        // スタック数が maxStack に達したら別のステートを付与する場合
+        if (unit.custom.stackState[state.getId()] === state.custom.maxStack &&
+        typeof state.custom.nextState === 'number') {
+            // removePreviousState が true であれば、既存ステートを削除
+            if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
+                StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
+                unit.custom.stackState[state.getId()] = 0;
+            }
+
+            // 新しいステートを付与
+            var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
+            StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
         }
 
         return;
