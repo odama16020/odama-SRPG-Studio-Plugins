@@ -153,7 +153,7 @@ StateControl.arrangeState = function (unit, state, increaseType) {
         // スタック数を初期化
         unit.custom.stackState[state.getId()] = 0;
     } else {
-        _StateControl_arrangeState.apply(this, arguments);
+        return _StateControl_arrangeState.apply(this, arguments);
     }
 };
 
