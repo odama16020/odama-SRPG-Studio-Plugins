@@ -66,11 +66,13 @@ rate_correction:[<最大HP>, <力>, <魔力>, <技>, <速さ>, <幸運>, <守備
 以下プラグインは競合するため、同時に使用しないでください。
 ・キュウブ様作「1つのステートを重ねがけする」
 ・キュウブ様作「パラメータを割合変化させるステート」
+・StateControl.getStateParameter を独自定義しているプラグイン全般
 
 
 ■更新履歴
-23/12/27　初回リリース
-23/12/27　maxStackが1でもnextStateが付与されるよう修正
+23/12/27 初回リリース
+23/12/27 maxStackが1でもnextStateが付与されるよう修正
+24/01/15 複数のステートで同一ステータスが上昇していたときの値が正しくなるよう修正
 
 
 ■動作確認バージョン
@@ -187,25 +189,34 @@ StateControl.getHpValue = function(unit) {
 };
 
 // 「ターン毎のボーナス減少値」を考慮したパラメータ値を取得する
-var alias2 = StateControl.getStateParameter;
+// var alias2 = StateControl.getStateParameter;
 StateControl.getStateParameter = function(unit, index) {
     var list = unit.getTurnStateList();
     var count = list.getCount();
-    var value = alias2.call(this, unit, index);
-    var state;
+    var totalValue = 0;
+    var state, stateValue;
 
     for (var i = 0; i < count; i++) {
         state = list.getData(i).getState();
+        stateValue = 0;
+
+        // 元の処理
+        stateValue += ParamGroup.getDopingParameter(list.getData(i), index);
+
+        // rate_correction が設定されている場合はステータスを割合変化
         if (typeof state.custom.rate_correction === 'object') { 
-            value += ParamGroup.getClassUnitValue(unit, index) * state.custom.rate_correction[index] / 100;
+            stateValue += ParamGroup.getClassUnitValue(unit, index) * state.custom.rate_correction[index] / 100;
         }
         // スタックしている分、パラメータボーナスを乗算
         if (typeof state.custom.maxStack === 'number' && typeof unit.custom.stackState[state.getId()] === 'number') { 
-            value *= unit.custom.stackState[state.getId()];
+            stateValue *= unit.custom.stackState[state.getId()];
         }
+
+        // 合計値にステート単位の値を加算
+        totalValue += Math.floor(stateValue);
     }
 
-    return Math.floor(value);
+    return totalValue;
 };
 
 //----------------------------------
