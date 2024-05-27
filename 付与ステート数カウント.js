@@ -66,7 +66,6 @@ var Fnc_StateCount = {
 				continue;
 			}
 			result++;
-			root.log('result:' + result);
 		}
 		return result;
 	}
