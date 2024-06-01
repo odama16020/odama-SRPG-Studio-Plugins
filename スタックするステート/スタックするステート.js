@@ -155,6 +155,8 @@ StateControl.arrangeState = function (unit, state, increaseType) {
     } else {
         return _StateControl_arrangeState.apply(this, arguments);
     }
+		
+    MapHpControl.updateHp(unit);
     
     return turnState;
 };
