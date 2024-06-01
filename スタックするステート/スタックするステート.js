@@ -146,8 +146,6 @@ StateControl.arrangeState = function (unit, state, increaseType) {
             var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
             StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
         }
-
-        return;
     // maxStack が設定されたステートを削除するとき
     } else if (increaseType === IncreaseType.DECREASE && typeof state.custom.maxStack === "number") {
         editor.deleteTurnStateData(list, state);
@@ -157,6 +155,8 @@ StateControl.arrangeState = function (unit, state, increaseType) {
     } else {
         return _StateControl_arrangeState.apply(this, arguments);
     }
+    
+    return turnState;
 };
 
 
