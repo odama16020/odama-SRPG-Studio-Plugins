@@ -15,7 +15,7 @@
 　→受けるダメージが20%減少します。
 
 ・{additionalDamageRate:50}
-　→受けるダメージが50%減少します。（敵対するユニットからのステート付与で追加されるスキルを想定）
+　→受けるダメージが50%増加します。（敵対するユニットからのステート付与で追加されるスキルを想定）
 
 ■その他、注意事項
 このスキルを複数所持している場合、additionalDamageRateはそれらの合計値となります。
@@ -48,8 +48,8 @@ v1.298
 //-------------------------------------------------------
 // 設定
 //-------------------------------------------------------
-var allowMinusDamageRate = false;		// true:ダメージ割合がマイナス（＝回復）になるのを許可する false:許可しない（デフォルト）
-var KEYWORD = 'modifyDamageRate';       // ダメージ倍率変更スキルのカスタムキーワード
+var allowMinusDamageRate = false;   // true:ダメージ割合がマイナス（＝回復）になるのを許可する false:許可しない（デフォルト）
+var KEYWORD = 'modifyDamageRate';   // ダメージ倍率変更スキルのカスタムキーワード
 
 
 //-------------------------------------------------------
@@ -71,7 +71,7 @@ DamageCalculator.calculateDamage = function(active, passive, weapon, isCritical,
         for(i = 0; i < count; i++) {
             // skillArrayのi番目のskillオブジェクトを取得
             skill = skillArray[i].skill;
-            
+
             // スキルのカスパラにadditionalDamageRateが設定されていれば、その値の分damageRateを増減
             if (typeof skill.custom.additionalDamageRate === 'number') {
                 damageRate += skill.custom.additionalDamageRate;
