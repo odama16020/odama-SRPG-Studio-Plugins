@@ -15,8 +15,12 @@
 ■設定方法
 プラグインをフォルダに入れ、スタックするように設定したいステートに以下カスパラを設定します。
 
-・maxStack
+・maxStack (必須)
 ステートの最大スタック数です。1以上の数値を設定している場合、ステートがスタックするようになります。
+
+・requiredStack
+2以上の数値を設定している場合、ステートのパラメータボーナスおよび自然回復を発生させるためにrequiredStack分のスタック数が必要になります。
+例として、力に1のパラメータボーナスを設定し、requiredStack:3とした場合、ステートが3スタックするごとに力が1増加します。
 
 ・overlappingTurn
 設定している場合、ステートを付与したときにツール側の「持続ターン」設定を無視し、設定値の分だけステートの持続ターンが設定され、
@@ -62,21 +66,39 @@ rate_correction:[<最大HP>, <力>, <魔力>, <技>, <速さ>, <幸運>, <守備
 ステートが最大3スタックし、1スタックごとに速さが20%増加、守備が10%減少します。
 
 
+■おまけ：天邪鬼スキル
+データ設定で、種類を「カスタム」にしたスキルを作成し、キーワードに"contrary"と入力します。
+スキルを所持したユニットは、ステートによる能力の上昇と下降が反転します。
+
+
+■おまけ：ステートのスタック数を減らす関数
+decreaseStackStateというイベント用の関数を用意しています。
+<スクリプトの実行>でオリジナルデータに対象のユニットとステートを設定し「コード実行」で以下例のようなコードを入力することで
+対象ユニットにステートが付与されている場合、そのステートのスタック数を指定数減らし、0以下になった場合はステートを消去します。
+
+(例)
+var unit = root.getEventCommandObject().getOriginalContent().getUnit();
+var state = root.getEventCommandObject().getOriginalContent().getState();
+var num = 1; // この値だけスタック数減少
+decreaseStackState(unit, state, num);
+
+
 ■注意
 以下プラグインは競合するため、同時に使用しないでください。
 ・キュウブ様作「1つのステートを重ねがけする」
 ・キュウブ様作「パラメータを割合変化させるステート」
-・StateControl.getStateParameter を独自定義しているプラグイン全般
+・StateControl.getHpValue または StateControl.getStateParameter を独自定義しているプラグイン全般
 
 
 ■更新履歴
 23/12/27 初回リリース
 23/12/27 maxStackが1でもnextStateが付与されるよう修正
 24/01/15 複数のステートで同一ステータスが上昇していたときの値が正しくなるよう修正
+25/06/10 スタック数の取得方法を変更、requiredStackおよび天邪鬼スキル、スタック数を減らすスクリプトを追加
 
 
 ■動作確認バージョン
-SRPG Studio Version:1.288
+SRPG Studio Version:1.312
 
 
 ■規約
@@ -104,8 +126,8 @@ StateControl.arrangeState = function (unit, state, increaseType) {
         // 既にステートが付与されているとき
         if (turnState !== null) {
             // スタック数が設定済みかつ maxStack 未満なら加算
-            if (unit.custom.stackState[state.getId()] < state.custom.maxStack) {
-                unit.custom.stackState[state.getId()]++;
+                if (turnState.custom.stack < state.custom.maxStack) {
+                    turnState.custom.stack++;
             }
 
             // ターン数の設定
@@ -122,36 +144,26 @@ StateControl.arrangeState = function (unit, state, increaseType) {
             if (count < DataConfig.getMaxStateCount()) {
                 editor.addTurnStateData(list, state);
                 turnState = this.getTurnState(unit, state);
-                if (typeof state.custom.overlappingTurn === "number") {
+                if (typeof state.custom.overlappingTurn === 'number') {
                     // overlappingTurn が設定されているなら overlappingTurn をターンに設定
                     turnState.setTurn(state.custom.overlappingTurn);
                 }
-                if (typeof unit.custom.stackState === 'undefined') {
-                    unit.custom.stackState = [];
-                }
-                unit.custom.stackState[state.getId()] = 1;
+                turnState.custom.stack = 1;
             }
         }
 
         // スタック数が maxStack に達したら別のステートを付与する場合
-        if (unit.custom.stackState[state.getId()] === state.custom.maxStack &&
-        typeof state.custom.nextState === 'number') {
-            // removePreviousState が true であれば、既存ステートを削除
-            if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
-                StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
-                unit.custom.stackState[state.getId()] = 0;
+            if (turnState.custom.stack === state.custom.maxStack &&
+                typeof state.custom.nextState === 'number') {
+                    // removePreviousState が true であれば、既存ステートを削除
+                    if (typeof state.custom.removePreviousState !== 'undefined' && state.custom.removePreviousState === true) {
+                        StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
             }
 
             // 新しいステートを付与
             var newState = root.getBaseData().getStateList().getDataFromId(state.custom.nextState);
             StateControl.arrangeState(unit, newState, IncreaseType.INCREASE);
         }
-    // maxStack が設定されたステートを削除するとき
-    } else if (increaseType === IncreaseType.DECREASE && typeof state.custom.maxStack === "number") {
-        editor.deleteTurnStateData(list, state);
-
-        // スタック数を初期化
-        unit.custom.stackState[state.getId()] = 0;
     } else {
         return _StateControl_arrangeState.apply(this, arguments);
     }
@@ -166,22 +178,23 @@ StateControl.arrangeState = function (unit, state, increaseType) {
 // StateControlクラス
 //----------------------------------
 // 「自然回復」の値を取得する
-var alias1 = StateControl.getHpValue;
 StateControl.getHpValue = function(unit) {
-    var i, state;
+    var i, turnState, state, stack;
     var list = unit.getTurnStateList();
     var count = list.getCount();
     var recoveryValue = 0;
-
-    if (typeof unit.custom.stackState === 'undefined') {
-        return alias1.call(this, unit);
-    }
     
     for (i = 0; i < count; i++) {
-        state = list.getData(i).getState();
+        turnState = list.getData(i);
+        state = turnState.getState();
         // スタックしている分、自然回復値を乗算
-        if (typeof state.custom.maxStack === 'number' && typeof unit.custom.stackState[state.getId()] === 'number') {
-            recoveryValue += state.getAutoRecoveryValue() * unit.custom.stackState[state.getId()];
+        if (typeof turnState.custom.stack !== 'undefined' && typeof turnState.custom.stack === 'number') {
+            if (typeof state.custom.requiredStack === 'number' && state.custom.requiredStack > 1) {
+                stack = Math.floor(turnState.custom.stack / state.custom.requiredStack);
+            } else {
+                stack = turnState.custom.stack;
+            }
+            recoveryValue += state.getAutoRecoveryValue() * stack;
         } else {
             recoveryValue += state.getAutoRecoveryValue();
         }
@@ -191,15 +204,16 @@ StateControl.getHpValue = function(unit) {
 };
 
 // 「ターン毎のボーナス減少値」を考慮したパラメータ値を取得する
-// var alias2 = StateControl.getStateParameter;
 StateControl.getStateParameter = function(unit, index) {
     var list = unit.getTurnStateList();
     var count = list.getCount();
     var totalValue = 0;
-    var state, stateValue;
+    var turnState, state, stateValue, stack;
+    var hp = unit.getHp();
 
     for (var i = 0; i < count; i++) {
-        state = list.getData(i).getState();
+        turnState = list.getData(i);
+        state = turnState.getState();
         stateValue = 0;
 
         // 元の処理
@@ -210,8 +224,20 @@ StateControl.getStateParameter = function(unit, index) {
             stateValue += ParamGroup.getClassUnitValue(unit, index) * state.custom.rate_correction[index] / 100;
         }
         // スタックしている分、パラメータボーナスを乗算
-        if (typeof state.custom.maxStack === 'number' && typeof unit.custom.stackState[state.getId()] === 'number') { 
-            stateValue *= unit.custom.stackState[state.getId()];
+        if (typeof state.custom.maxStack === 'number' && typeof turnState.custom.stack === 'number') { 
+            if (typeof state.custom.requiredStack === 'number' && state.custom.requiredStack > 1) {
+                stack = Math.floor(turnState.custom.stack / state.custom.requiredStack);
+            } else {
+                stack = turnState.custom.stack;
+            }
+
+            stateValue *= stack;
+        }
+
+        // 天邪鬼スキル（上昇下降を反転）
+        var contrarySkill = SkillControl.getPossessionCustomSkill(unit, 'contrary');
+        if(contrarySkill){
+            stateValue *= -1;
         }
 
         // 合計値にステート単位の値を加算
@@ -221,27 +247,16 @@ StateControl.getStateParameter = function(unit, index) {
     return totalValue;
 };
 
-//----------------------------------
-// UnitProviderクラス
-//----------------------------------
-// ユニット登場時にカスパラを初期化
-var _UnitProvider__resetState = UnitProvider._resetState;
-UnitProvider._resetState = function(unit) {
-    _UnitProvider__resetState.apply(this, arguments);
-
-    // ユニットのカスパラを初期化
-    unit.custom.stackState = [];
-};
-
-//----------------------------------
-// DamageControlクラス
-//----------------------------------
-// ユニットの状態変更時にカスパラを初期化
-var _DamageControl_setReleaseState = DamageControl.setReleaseState;
-DamageControl.setReleaseState = function(unit) {
-    _DamageControl_setReleaseState.apply(this, arguments);
-
-    // ユニットのカスパラを初期化
-    unit.custom.stackState = [];
-};
 })();
+
+// ステートのスタック数を減らす
+decreaseStackState = function(unit, state, num) {
+    var turnState = StateControl.getTurnState(unit, state);
+    if (turnState !== null && typeof turnState.custom.stack === 'number') {
+        turnState.custom.stack -= num;
+        // スタック数が0以下になった場合はステートを解除
+        if (turnState.custom.stack < 1) {
+            StateControl.arrangeState(unit, state, IncreaseType.DECREASE);
+        }
+    }
+};
